@@ -132,7 +132,11 @@ impl<SecondaryIndexEntryType: SecondaryIndexEntry + Default + Sync + Send>
     /// Inserts `inner_key` into `key`'s map.
     pub fn insert(&self, key: &Pubkey, inner_key: &Pubkey) {
         // Note: Always lock the reverse index first, so we synchronize with remove().
-        let reverse_index_entry = self.reverse_index.entry(*inner_key).or_default();
+        // Pre-size to 1 to avoid push() over-allocating an empty Vec to capacity 4.
+        let reverse_index_entry = self
+            .reverse_index
+            .entry(*inner_key)
+            .or_insert_with(|| RwLock::new(Vec::with_capacity(1)));
         let mut outer_keys = reverse_index_entry.write().unwrap();
 
         // Now insert into the index.
